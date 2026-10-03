@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.21.0
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: i18n coherence
+        run: npm run check:i18n
+
+      - name: Auth invariant (build side)
+        run: node --input-type=module -e "import { buildAuthEnabled } from './scripts/check-auth-invariant.mjs'; const ok = buildAuthEnabled() === false; if (!ok) { console.error('[ci] VITE_AUTH_ENABLED must be false for MVP delivery'); process.exit(1); } console.log('[ci] sign-in resolved off (VITE_AUTH_ENABLED=false)');"
+
+      - name: Secrets audit
+        run: node scripts/check-secrets.mjs
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build

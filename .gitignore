@@ -1,0 +1,7 @@
+node_modules/
+.vercel/
+.project_id
+.grok/app-env.json
+.grok/preview.log
+.vercel
+.env*

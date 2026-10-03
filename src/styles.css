@@ -1,0 +1,250 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Charte OVITECH — bleu marine (logo), gravure or, pousse verte */
+  --color-navy-950: #0a1220;
+  --color-navy-900: #0e1826;
+  --color-navy-800: #142234;
+  --color-navy-700: #1c2e44;
+  --color-gold-300: #e7c46b;
+  --color-gold-500: #c9a227;
+  --color-gold-600: #aa8823;
+  --color-gold-700: #8a6d1f;
+  --color-green-400: #33c285;
+  --color-green-500: #1f8f5f;
+  --color-green-600: #17704e;
+  --color-green-700: #12573a;
+  --color-ink-100: #f4f1e6;
+  --color-ink-300: #c9d2de;
+  --color-ink-500: #8a96a8;
+
+  --color-bg: var(--color-navy-950);
+  --color-bg-elevated: var(--color-navy-900);
+  --color-surface: var(--color-navy-900);
+  --color-surface-2: var(--color-navy-800);
+  --color-fg: var(--color-ink-100);
+  --color-muted: var(--color-ink-300);
+  --color-subtle: var(--color-ink-500);
+  --color-gold: var(--color-gold-500);
+  --color-gold-fg: var(--color-navy-950);
+  --color-leaf: var(--color-green-500);
+  --color-leaf-fg: var(--color-ink-100);
+  --color-border: var(--color-navy-700);
+  --color-border-strong: color-mix(in oklab, var(--color-ink-300) 25%, transparent);
+  --color-danger: #b0473e;
+  --color-warn: var(--color-gold-500);
+  --color-ok: var(--color-green-500);
+
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-fg);
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-fg);
+  --color-primary: var(--color-gold-500);
+  --color-primary-foreground: var(--color-navy-950);
+  --color-secondary: var(--color-surface-2);
+  --color-secondary-foreground: var(--color-fg);
+  --color-accent: var(--color-green-400);
+  --color-accent-foreground: var(--color-navy-950);
+  --color-destructive: var(--color-danger);
+  --color-ring: var(--color-gold-300);
+  --color-input: var(--color-navy-800);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius: 8px;
+
+  /* Ombre portée : profondeur sombre + halo or diffus (lisible sur navy-950). */
+  --shadow-panel: 0 24px 48px -20px rgb(0 0 0 / 0.7), 0 6px 16px -8px rgb(0 0 0 / 0.5);
+  --shadow-card: var(--shadow-panel), 0 28px 64px -30px rgb(201 162 39 / 0.24);
+
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+  }
+
+  body {
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+    background-image:
+      radial-gradient(1200px 600px at 0% -10%, rgb(31 143 95 / 0.1), transparent 55%),
+      radial-gradient(900px 500px at 100% 0%, rgb(201 162 39 / 0.08), transparent 50%);
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
+  }
+
+  h1 {
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+  }
+
+  h2 {
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+  }
+
+  h3 {
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    text-wrap: pretty;
+    line-height: 1.7;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-gold) 40%, transparent);
+    color: var(--color-fg);
+  }
+
+  img {
+    outline: 1px solid color-mix(in oklab, var(--color-fg) 10%, transparent);
+    outline-offset: -1px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@layer components {
+  .glass-card {
+    border: 1px solid var(--color-navy-700);
+    background: color-mix(in oklab, var(--color-surface) 84%, transparent);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Filet doré horizontal — renvoi au filet sous « OVITECH » (gravure or).
+     Direction logique : en RTL le filet garde l'axe, seules les icônes
+     orientées pivotent (voir .rtl-flip). */
+  .gold-rule {
+    border: 0;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-gold-300),
+      var(--color-gold-700),
+      transparent
+    );
+  }
+
+  /* Anneau doré fin — référence aux cornes gravées : avatars, card active,
+     séparateurs OLED. Utiliser SANS classe d'épaisseur de bordure. */
+  .ring-gold {
+    border: 1.5px solid transparent;
+    border-image: linear-gradient(135deg, var(--color-gold-700), var(--color-gold-300)) 1;
+  }
+
+  /* RTL : bascule de direction centrale via [dir="rtl"] sur <html>.
+     - .rtl-flip retourne les icônes orientées (chevrons, flèches, chevron de tri).
+     - Exclusions : les graphiques recharts restent LTR (axes numériques). */
+  .rtl-flip {
+    transform: scaleX(-1);
+  }
+
+  [dir="rtl"] .rtl-flip {
+    transform: scaleX(-1);
+  }
+
+  [dir="rtl"] .ls-nums {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
+  [dir="rtl"] .font-mono {
+    letter-spacing: 0;
+  }
+}
+
+@media print {
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  .print\:hidden,
+  aside,
+  header,
+  nav,
+  .no-print,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+}
+
+@keyframes orb-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+.orb-ring {
+  position: absolute;
+  inset: -10px;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklab, var(--color-gold) 50%, transparent);
+  animation: orb-pulse 1.8s var(--ease-smooth-out) infinite;
+  pointer-events: none;
+}
+
+.orb-ring-delay {
+  inset: -22px;
+  animation-delay: 0.55s;
+}

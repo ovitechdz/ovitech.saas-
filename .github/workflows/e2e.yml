@@ -1,0 +1,40 @@
+name: E2E production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Sonde SLO quotidienne (UTC) : régression de déploiement + disponibilité.
+    - cron: "0 3 * * *"
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.21.0
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Chromium (Playwright)
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E against production
+        run: node scripts/e2e-prod.mjs --base https://ovitech-saas.vercel.app
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-prod-evidence
+          path: screenshots/e2e-prod
+          if-no-files-found: ignore
