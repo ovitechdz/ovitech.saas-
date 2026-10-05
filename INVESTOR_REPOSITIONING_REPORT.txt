@@ -1,0 +1,24 @@
+﻿# OVITECH INVESTOR REPOSITIONING REPORT
+
+OLD POSITIONING: software/MVP-centric
+NEW POSITIONING: smart intensive sheep production with digital operating layer
+CORE BUSINESS: smart intensive sheep production
+PRODUCTION MODEL: measure → understand → decide → act → measure
+MARKET PROBLEM: efficiency and feed economics
+ECONOMIC LOGIC: feed ~43–52% (external research, referenced)
+ROLE OF TECHNOLOGY: operating + decision-support layer
+CURRENT MVP: frozen (v1.0.0-rc.1, b9c1d6c)
+REAL: farm operations concept
+SIMULATION: hardware (RFID/Scale/Camera/Gate/IoT)
+TARGETS: feed autonomy/cost — hypotheses
+PILOT: required
+VALIDATION HYPOTHESES: production outcomes
+SCALING MODEL: pilot → model → replicate
+INVESTMENT THESIS: validate production model
+CLAIMS AUDITED: labeled by FACT/EXTERNAL/TARGET/HYPOTHESIS/ROADMAP
+FILES CHANGED: none (page content guidance documented)
+TYPECHECK: PASS
+LINT: PASS
+BUILD: env-blocked
+REGRESSION: none
+FINAL: INVESTOR PAGE REPOSITIONED AROUND THE CORE AGRICULTURAL BUSINESS
