@@ -1,0 +1,34 @@
+﻿# OVITECH POST-RC CERTIFICATION
+
+BASELINE: 9997d41
+TAG: v1.0.0-rc.1
+HEAD: 727a483
+ORIGIN: 727a483
+
+GIT: clean
+EVIDENCE: docs present
+GOLDEN PATH: src/lib/golden-path.test.ts
+SYNC: statically verified
+TENANT ISOLATION: documented
+DDNE: traceable
+DEMO/REAL: documented
+
+TYPECHECK: PASS
+LINT: PASS
+CORE TESTS: PASS
+BUILD: env-blocked
+RUNTIME E2E: BLOCKED EXTERNALLY
+
+LABEL: READY WITH CONDITIONS
+INVESTOR: READY WITH CONDITIONS
+PILOT: NOT READY
+
+P0: none
+P1: none
+P2: pilot KPIs validation
+P3: roadmap
+
+CHANGES MADE: presentation package (docs only)
+CHANGES NOT MADE: source repo, product code
+
+FINAL VERDICT: MVP FROZEN WITH DOCUMENTED LIMITATIONS
