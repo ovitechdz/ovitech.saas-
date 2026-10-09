@@ -1,0 +1,8 @@
+﻿INSTRUCTION SIMPLE:
+1. OUVRE CHROME → https://ovitech-saas-c1sypj9q1-ovitech-team.vercel.app/account
+2. DEVTOOLS (F12) → Network + Console → preserve log
+3. CLIQUE GOOGLE SIGN-IN
+4. COPIE HAR (export) ET REQUÊTE ÉCHOUÉE (hostname + path + status + timing)
+5. VERCEL → LOGS RUNTIME (deployment) → cherche request ID correspondant
+6. ENVOYE HAR NETTOYÉ (sans cookies/token) + extrait logs
+STOP: pas de modif code
