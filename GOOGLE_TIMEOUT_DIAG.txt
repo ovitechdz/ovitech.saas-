@@ -1,0 +1,11 @@
+﻿RAPPORT — GOOGLE SIGN-IN CONNECT TIMEOUT
+LECTURE SEULE
+URL: https://ovitech-saas-c1sypj9q1-ovitech-team.vercel.app/account
+FAILLITE: Google OAuth → timeout TCP vers 172.65.90.20-23:443 (10s)
+HÔTE CIBLE: NON IDENTIFIÉ (nécessite inspection réseau + Vercel logs)
+ORIGINE: NON ÉTABLIE
+COUCHE: TCP/TLS
+WORKING: email/password OK
+CODE GOOGLE: non détecté dans src
+ACTION: prélever har/network + vercel function logs + vérifier GOOGLE_CLIENT_ID/SECRET + redirect URI
+CONCLUSION: UNVERIFIED — pas de modification
