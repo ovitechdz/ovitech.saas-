@@ -1,0 +1,11 @@
+﻿RAPPORT — Invalid redirect URI
+LECTURE SEULE
+HEAD: c593b73
+ERREUR: {"message":"Invalid redirect URI"}
+FOUNTAIN: broker (GROK_AUTH_ISSUER) génère redirect_uri
+BASEURL: dynamic vs BETTER_AUTH_URL
+MISMATCH: POSSIBLE
+VERIFIED: tracé code
+UNVERIFIED: URI exact + registre broker
+NEXT: HAR (network) montrant authorize/callback + logs Vercel runtime
+AUCUNE MODIFICATION
