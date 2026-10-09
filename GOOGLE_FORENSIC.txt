@@ -1,0 +1,8 @@
+﻿RAPPORT — GOOGLE FORENSIC
+HEAD: cc210d5
+ACCESS: UNAVAILABLE (Vercel logs + HAR)
+CODE: grok-google → authClient.signIn.oauth2 → GROK_AUTH_ISSUER
+CAUSE STATUS: UNVERIFIED
+MISSING: HAR (hostname/path/timing) + Vercel runtime logs (request id)
+NEXT: capture HAR + logs, NO CODE CHANGE
+INTEGRITY: OK
