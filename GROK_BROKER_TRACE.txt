@@ -1,0 +1,10 @@
+﻿RAPPORT BROKER
+LECTURE SEULE
+HEAD: f06cacb
+grok-google: providerId dans src/lib/auth/providers.ts:29
+BOUTON: via authClient.signIn.oauth2(providerId='grok-google')
+DESTINATION: GROK_AUTH_ISSUER (broker) - hostname inconnu
+TIMEOUT: 172.65.90.20-23:443 - non identifié
+CONCLUSION: UNVERIFIED
+ACTION: HAR + console + logs Vercel runtime
+AUCUNE MODIFICATION
