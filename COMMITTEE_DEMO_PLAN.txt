@@ -1,0 +1,10 @@
+﻿COMMITTEE DEMO PLAN — READ-ONLY AUDIT
+HEAD: d2f1217
+WORKTREE: CLEAN
+ACTION: NONE
+BLOCKED: ACCOUNT CREATION IN PROD
+PROPOSAL:
+- Hide Google button via preview/env flag (local-only if allowed)
+- Use existing email/password flow
+- Create demo accounts via local script only
+NO CHANGES MADE
