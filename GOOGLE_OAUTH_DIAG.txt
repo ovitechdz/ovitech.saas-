@@ -1,0 +1,8 @@
+﻿RAPPORT — GOOGLE OAUTH DIAGNOSIS
+STATUT: LECTURE SEULE
+COMPORTEMENT: Inscription/connexion email/mot de passe OK
+GOOGLE: Échec générique sur l'URL déployée
+CODE: Aucun provider Google détecté dans src
+CAUSE PROBABLE: Google provider non configuré / absent
+ACTIONS: Vérifier Vercel env (GOOGLE_CLIENT_ID/SECRET) + Google Cloud redirect URI
+CONCLUSION: NECESSITE CONFIGURATION ENVIRONNEMENT (EXTERNE). AUCUNE MODIFICATION CODE.
