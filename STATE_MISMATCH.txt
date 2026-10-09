@@ -1,0 +1,8 @@
+﻿RAPPORT — STATE_MISMATCH
+HEAD: 9dc7577
+FLOW: authClient.signIn.oauth2(grok-google) → broker GROK_AUTH_ISSUER
+STATE_STORAGE: UNVERIFIED (Better Auth genericOAuth)
+ORIGIN_COOKIE: UNVERIFIED
+ROOT_CAUSE: UNVERIFIED
+NEXT: HAR + Vercel logs + console (oauth callback)
+NO CHANGE
