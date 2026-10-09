@@ -1,0 +1,8 @@
+﻿RAPPORT — GOOGLE TIMEOUT
+LECTURE SEULE
+HEAD: f1bdddc
+CODE: broker-based Google (grok-google) via GROK_AUTH_ISSUER
+ORIGINE: non identifiée
+HÔTE CIBLE: inconnu (probable broker)
+CONCLUSION: UNVERIFIED — capture HAR + console + Vercel logs + vérifier GROK_AUTH_ISSUER
+AUCUNE MODIFICATION
