@@ -1,0 +1,8 @@
+﻿COLLECTE PREUVE — GROK-GOOGLE TIMEOUT
+LECTURE SEULE
+HEAD: b162f45
+ÉTAT: UNVERIFIED
+PREUVE MANQUANTE: HAR navigateur (réseau) + logs Vercel runtime
+DÉTAIL DEMANDÉ: hostname, chemin, statut, timing + ID corrélation
+HÔTE CIBLE: inconnu (GROK_AUTH_ISSUER non révélé)
+STOP
