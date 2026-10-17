@@ -1,5 +1,5 @@
 ﻿# OVITECH — LABEL EXECUTIVE SUMMARY
-Release: v1.0.0-rc.1 (b9c1d6c)
+Release: v1.0.0-rc.1 (b9c1d6c) — deployed/verified commit: c3e80bff (ovitechdz/ovitech.saas- main)
 
 ## Problem
 Fragmented data, paper-based tracking, and lack of traceable decision support in sheep farming.
