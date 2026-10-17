@@ -1,17 +1,30 @@
 import { getSql } from "@/lib/db";
+import {
+  lookupFarmMembership,
+  roleAllowed,
+  type FarmMembership,
+  type FarmRole,
+} from "./farm-membership";
 import { UnauthorizedError } from "./verify.server";
 
-export type FarmRole = "OWNER" | "MANAGER" | "OPERATOR";
+export type { FarmRole } from "./farm-membership";
 
-export async function requireFarmMembership(userId: string, farmId: string) {
+export async function requireFarmMembership(
+  userId: string,
+  farmId: string,
+): Promise<FarmMembership> {
   const sql = await getSql();
-  const rows = await sql<any>`select user_id, farm_id, role from farm_memberships where user_id = ${userId} and farm_id = ${farmId} limit 1`;
-  if (!rows || rows.length === 0) throw new UnauthorizedError();
-  return rows[0] as { user_id: string; farm_id: string; role: FarmRole };
+  const membership = await lookupFarmMembership(sql, userId, farmId);
+  if (!membership) throw new UnauthorizedError();
+  return membership;
 }
 
-export async function requireFarmRole(userId: string, farmId: string, roles: FarmRole[]) {
-  const m = await requireFarmMembership(userId, farmId);
-  if (!roles.includes(m.role)) throw new UnauthorizedError();
-  return m;
+export async function requireFarmRole(
+  userId: string,
+  farmId: string,
+  roles: FarmRole[],
+): Promise<FarmMembership> {
+  const membership = await requireFarmMembership(userId, farmId);
+  if (!roleAllowed(membership, roles)) throw new UnauthorizedError();
+  return membership;
 }

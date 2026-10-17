@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, utimesSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,6 +17,18 @@ import {
 
 const TEMPLATE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT = join(TEMPLATE_ROOT, "scripts/brand-check.mjs");
+
+// Les artefacts de prompt-agent (.grok/skills/og, AGENTS.md) ne sont pas
+// versionnés dans ce dépôt. Sans eux, on ne peut pas vérifier la cohérence
+// docs↔scripts : ces contrôles sautent au lieu d'échouer en ENOENT.
+const OG_SKILL_PATH = join(TEMPLATE_ROOT, ".grok/skills/og/SKILL.md");
+const AGENTS_PATH = join(TEMPLATE_ROOT, "AGENTS.md");
+const DOCS_SKIP = existsSync(OG_SKILL_PATH) && existsSync(AGENTS_PATH)
+  ? false
+  : "artefacts de prompt-agent absents (.grok/skills/og/SKILL.md, AGENTS.md)";
+const SKILL_SKIP = existsSync(OG_SKILL_PATH)
+  ? false
+  : "artefact de prompt-agent absent (.grok/skills/og/SKILL.md)";
 
 const GAME_SITE = JSON.stringify({ title: "Wild Race", type: "x:game", card: "custom" });
 const UTILITY_SITE = JSON.stringify({ title: "Invoice" });
@@ -305,7 +317,7 @@ test("cli: a non-game with a compliant card passes", () => {
 
 const readDoc = (rel) => readFileSync(join(TEMPLATE_ROOT, rel), "utf8");
 
-test("SKILL.md and AGENTS.md name the marker path and bound this script uses", () => {
+test("SKILL.md and AGENTS.md name the marker path and bound this script uses", { skip: DOCS_SKIP }, () => {
   // Prose wraps, so the minute count may straddle a line break.
   const bound = new RegExp(`${OG_PENDING_MAX_AGE_MS / 60_000}\\s+minutes`);
   for (const rel of [".grok/skills/og/SKILL.md", "AGENTS.md"]) {
@@ -343,7 +355,7 @@ function prohibitionSection({ rel, label, from, until }) {
   return (from + (end === -1 ? rest : rest.slice(0, end))).replace(/[`*]/g, "").replace(/\s+/g, " ");
 }
 
-test("the sections that own the brand-task prohibition never affirm a wait", () => {
+test("the sections that own the brand-task prohibition never affirm a wait", { skip: DOCS_SKIP }, () => {
   // Pinned on the shape of the prohibition, not on a negation being somewhere
   // nearby: "So: wait_tasks before the final verify, but never get_task_output"
   // keeps a negation in the sentence while instructing exactly the wait.
@@ -362,7 +374,7 @@ test("the sections that own the brand-task prohibition never affirm a wait", () 
   }
 });
 
-test("SKILL.md tells the pass to self-check with the flag this CLI accepts", () => {
+test("SKILL.md tells the pass to self-check with the flag this CLI accepts", { skip: SKILL_SKIP }, () => {
   const skill = readDoc(".grok/skills/og/SKILL.md");
   const invocations = skill.match(/node scripts\/brand-check\.mjs[^\n`]*/g) ?? [];
   assert.ok(invocations.length > 0);

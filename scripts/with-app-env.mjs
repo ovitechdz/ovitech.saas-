@@ -30,9 +30,18 @@ export const APP_ENV_REL_PATH = ".grok/app-env.json";
 const VITE_PREFIX = "VITE_";
 
 /**
+ * Overrides shipped with the template, applied UNDER the app-env file and the
+ * process environment. MVP delivery defaults to sign-in OFF, so the flag is
+ * reproducible from a clean clone — which has no (git-ignored)
+ * `.grok/app-env.json`. An explicit `VITE_AUTH_ENABLED` in the file or the
+ * process env still wins.
+ */
+export const APP_ENV_DEFAULTS = Object.freeze({ VITE_AUTH_ENABLED: "false" });
+
+/**
  * Parse an app-env document, keeping only `VITE_`-prefixed string entries.
- * Anything unparseable is an empty environment — a workspace without the file
- * must behave exactly like today (auth on, no overrides).
+ * Anything unparseable is an empty environment: a workspace without the file
+ * contributes no overrides, so only `APP_ENV_DEFAULTS` apply.
  */
 export function parseAppEnv(text) {
   let parsed;
@@ -60,9 +69,13 @@ export function readAppEnv(root) {
   }
 }
 
-/** File values under the process environment: an explicit override wins. */
+/**
+ * Resolve the effective app env: `APP_ENV_DEFAULTS` < the app-env file < the
+ * process environment. This is the single place the shipped default is applied,
+ * so the wrapper (`main`) and `buildAuthEnabled` cannot drift apart.
+ */
 export function mergeAppEnv(appEnv, processEnv) {
-  return { ...appEnv, ...processEnv };
+  return { ...APP_ENV_DEFAULTS, ...appEnv, ...processEnv };
 }
 
 /**

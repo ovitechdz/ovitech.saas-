@@ -2,6 +2,12 @@ import {
   normalizeMigrationSql,
   pendingMigrations,
 } from "../../scripts/migration-plan.mjs";
+import {
+  makeTaggedSql,
+  makeTransaction,
+  type DbClient,
+  type Sql,
+} from "./db-transaction";
 
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
@@ -22,23 +28,18 @@ const databaseUrl =
 export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
 
 /**
- * Minimal shared SQL surface, satisfied by both Neon and PGLite. Both the
- * tagged-template and `.query()` forms resolve to an array of row objects:
+ * Shared SQL surface (see `./db-transaction`), satisfied by both Neon and
+ * PGLite. Both the tagged-template and `.query()` forms resolve to an array of
+ * row objects:
  *
  *   const sql = await getSql();
  *   const rows = await sql`select * from todos where id = ${id}`; // parameterized
  *   const rows2 = await sql.query("select * from todos where id = $1", [id]);
+ *
+ * `DbClient` adds `transaction(fn)`, which pins BEGIN/…/COMMIT to a single
+ * connection — required on the Neon `pg.Pool` backend.
  */
-export interface Sql {
-  <T = Record<string, unknown>>(
-    strings: TemplateStringsArray,
-    ...values: unknown[]
-  ): Promise<T[]>;
-  query<T = Record<string, unknown>>(
-    text: string,
-    params?: unknown[],
-  ): Promise<T[]>;
-}
+export type { DbClient, Sql } from "./db-transaction";
 
 /**
  * Init state lives on globalThis as promises: dev HMR creates new instances of
@@ -48,7 +49,7 @@ export interface Sql {
  * `getSql()`). A failed init clears its slot so the next call retries.
  */
 const globalRef = globalThis as typeof globalThis & {
-  __pgSqlPromise__?: Promise<Sql>;
+  __pgSqlPromise__?: Promise<DbClient>;
   __pgliteInstance__?: Promise<import("@electric-sql/pglite").PGlite>;
   __pgliteMigrateChain__?: Promise<void>;
 };
@@ -70,28 +71,7 @@ const OID_DATE = 1082;
 const OID_INTERVAL = 1186;
 const identity = (v: string) => v;
 
-type Run = <T>(text: string, params: unknown[]) => Promise<T[]>;
-
-/** Wrap a query runner in the tagged-template + `.query()` `Sql` surface. */
-function toSql(run: Run): Sql {
-  const sql = (async <T = Record<string, unknown>>(
-    strings: TemplateStringsArray,
-    ...values: unknown[]
-  ): Promise<T[]> => {
-    // Rebuild with $1, $2, … placeholders so values stay parameterized.
-    let text = strings[0] ?? "";
-    for (let i = 0; i < values.length; i += 1) {
-      const next = strings[i + 1];
-      text += next === undefined ? "" : `$${i + 1}${next}`;
-    }
-    return run<T>(text, values);
-  }) as unknown as Sql;
-  sql.query = <T = Record<string, unknown>>(text: string, params: unknown[] = []) =>
-    run<T>(text, params);
-  return sql;
-}
-
-function createNeonSql(): Promise<Sql> {
+function createNeonSql(): Promise<DbClient> {
   globalRef.__pgSqlPromise__ ??= (async () => {
     // Regular Postgres driver: node-postgres (`pg`) — works directly with Neon's
     // pooled endpoint. One pool per process; warm serverless instances reuse it.
@@ -100,10 +80,12 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
     const pool = new Pool({ connectionString: databaseUrl });
-    return toSql(async <T>(text: string, params: unknown[]) => {
-      const res = await pool.query(text, params);
-      return res.rows as T[];
-    });
+    // Statements outside `transaction()` each borrow a pooled connection of
+    // their own — correct for single queries, but multi-statement atomicity
+    // MUST reserve one client. `makeTransaction` pins BEGIN/…/COMMIT to a single
+    // connection instead of going through `pool.query()`.
+    const sql = makeTaggedSql((text, params) => pool.query(text, params));
+    return Object.assign(sql, { transaction: makeTransaction(pool) });
   })().catch((err) => {
     globalRef.__pgSqlPromise__ = undefined;
     throw err;
@@ -111,7 +93,7 @@ function createNeonSql(): Promise<Sql> {
   return globalRef.__pgSqlPromise__;
 }
 
-async function createPgliteSql(): Promise<Sql> {
+async function createPgliteSql(): Promise<DbClient> {
   // Embedded Postgres, imported on demand so it never loads on the Neon path.
   // One in-memory instance per process, shared across HMR module instances, so
   // data survives source edits (it resets on dev-server restart).
@@ -168,15 +150,20 @@ async function createPgliteSql(): Promise<Sql> {
   globalRef.__pgliteMigrateChain__ = pass;
   await pass;
 
-  return toSql(async <T>(text: string, params: unknown[]) => {
-    const result = await pg.query<T>(text, params);
-    return result.rows;
+  const sql = makeTaggedSql((text, params) => pg.query(text, params));
+  // PGLite exposes a native transaction helper; every statement issued on `tx`
+  // (including through this tagged surface) runs in one transaction.
+  return Object.assign(sql, {
+    transaction: <T>(fn: (tx: Sql) => Promise<T>) =>
+      pg.transaction((tx) =>
+        fn(makeTaggedSql((text, params) => tx.query(text, params))),
+      ),
   });
 }
 
-let sqlPromise: Promise<Sql> | null = null;
+let sqlPromise: Promise<DbClient> | null = null;
 
-async function createSql(): Promise<Sql> {
+async function createSql(): Promise<DbClient> {
   if (typeof window !== "undefined") {
     throw new Error(
       "@/lib/db is server-only — call getSql() from a createServerFn handler " +
@@ -193,7 +180,7 @@ async function createSql(): Promise<Sql> {
  * Schema comes from `migrations/*.sql`, auto-applied before the first query on
  * both backends — define tables there, never inline in server functions.
  */
-export function getSql(): Promise<Sql> {
+export function getSql(): Promise<DbClient> {
   sqlPromise ??= createSql().catch((err) => {
     sqlPromise = null; // don't memoize failures — let the next call retry
     throw err;

@@ -59,8 +59,17 @@ test("an explicit process-env override wins over the file", () => {
   assert.equal(merged.PATH, "/usr/bin");
 });
 
-test("the template ships auth off", () => {
-  assert.deepEqual(readAppEnv(projectRoot()), { VITE_AUTH_ENABLED: "false" });
+test("the template ships auth off without a local app-env file", () => {
+  // The MVP default must hold on a clean clone, which has no (git-ignored)
+  // .grok/app-env.json — so it has to come from the resolver, not a file.
+  assert.deepEqual(mergeAppEnv(readAppEnv(makeWorkspace()), {}), {
+    VITE_AUTH_ENABLED: "false",
+  });
+});
+
+test("an explicit process-env value overrides the shipped default", () => {
+  const merged = mergeAppEnv(readAppEnv(makeWorkspace()), { VITE_AUTH_ENABLED: "true" });
+  assert.equal(merged.VITE_AUTH_ENABLED, "true");
 });
 
 test("vite loadEnv resolves the wrapped value", () => {
