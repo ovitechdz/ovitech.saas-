@@ -37,8 +37,14 @@ test("F-02: la couche store ne doit plus importer la route serveur directement",
 
 test("F-01: les identités de synchronisation sont farm-scopées", async () => {
   const sql = await readFile(new URL("../../migrations/app_core.sql", import.meta.url), "utf8");
-  assert.match(sql, /primary\s+key\s*\(\s*farm_id\s*,\s*mutation_id\s*\)|unique\s*\(\s*farm_id\s*,\s*mutation_id\s*\)/i);
-  assert.match(sql, /primary\s+key\s*\(\s*farm_id\s*,\s*id\s*\)|unique\s*\(\s*farm_id\s*,\s*id\s*\)/i);
+  assert.match(
+    sql,
+    /primary\s+key\s*\(\s*farm_id\s*,\s*mutation_id\s*\)|unique\s*\(\s*farm_id\s*,\s*mutation_id\s*\)/i,
+  );
+  assert.match(
+    sql,
+    /primary\s+key\s*\(\s*farm_id\s*,\s*id\s*\)|unique\s*\(\s*farm_id\s*,\s*id\s*\)/i,
+  );
 });
 
 test("composition des slices : état seed stable + actions présentes", () => {
@@ -66,6 +72,68 @@ test("composition des slices : état seed stable + actions présentes", () => {
     "resetDemo",
   ] as const) {
     assert.equal(typeof (s as unknown as Record<string, unknown>)[key], "function", key);
+  }
+});
+
+function persistedShape() {
+  const s = store.useFarmStore.getState();
+  return {
+    role: s.role,
+    network: s.network,
+    currentFarmId: s.currentFarmId,
+    animals: s.animals,
+    events: s.events,
+    healthEvents: s.healthEvents,
+    recs: s.recs,
+    feed: s.feed,
+    energy: s.energy,
+    kpiSeries: s.kpiSeries,
+    weights: s.weights,
+    signoffs: s.signoffs,
+    lastSyncedAt: s.lastSyncedAt,
+    failNextSync: s.failNextSync,
+  };
+}
+
+test("migrate: `energy` (objet) n'empêche plus de conserver l'état persisté", () => {
+  const marker = { ...store.useFarmStore.getState().animals[0]!, id: "keep-me" };
+  const migrated = store.migrateFarmData({ ...persistedShape(), animals: [marker] });
+  assert.deepEqual(
+    migrated.animals.map((a) => a.id),
+    ["keep-me"],
+    "l'état persisté est conservé (aucune retombée sur le seed)",
+  );
+  assert.ok(Array.isArray(migrated.energy.series), "energy conservé comme objet");
+});
+
+test("migrate: un état partiel conserve ses champs valides (pas d'effacement global)", () => {
+  const marker = { ...store.useFarmStore.getState().animals[0]!, id: "keep-me" };
+  // État d'une version antérieure : seul `animals` existe.
+  const migrated = store.migrateFarmData({ animals: [marker] });
+  assert.deepEqual(
+    migrated.animals.map((a) => a.id),
+    ["keep-me"],
+    "champ présent conservé",
+  );
+  assert.ok(migrated.events.length > 0, "champ absent reconstruit depuis le seed");
+  assert.ok(Array.isArray(migrated.energy.series), "energy reconstruit depuis le seed");
+});
+
+test("migrate: un champ invalide retombe seul sur le seed, les autres survivent", () => {
+  const marker = { ...store.useFarmStore.getState().animals[0]!, id: "keep-me" };
+  const migrated = store.migrateFarmData({ animals: [marker], events: "not-an-array" });
+  assert.deepEqual(
+    migrated.animals.map((a) => a.id),
+    ["keep-me"],
+    "champ valide conservé",
+  );
+  assert.ok(Array.isArray(migrated.events) && migrated.events.length > 0, "champ invalide → seed");
+});
+
+test("migrate: une entrée corrompue (non-objet) retombe entièrement sur le seed", () => {
+  for (const bad of [null, "garbage", 42, undefined]) {
+    const migrated = store.migrateFarmData(bad);
+    assert.ok(migrated.animals.length > 0, `seed restauré pour ${String(bad)}`);
   }
 });
 
@@ -110,7 +178,11 @@ test("la revue exige production; field ne sert qu'après approbation", () => {
   assert.ok(served.approvedBy, "approuvé par un rôle");
   const after = afterState.feed.reduce((n, f) => n + f.stockKg, 0);
   assert.ok(before - after > 0, "le stock diminue à la distribution");
-  assert.equal(afterState.events.some((e) => e.type === "distribution"), true, "événement distribution");
+  assert.equal(
+    afterState.events.some((e) => e.type === "distribution"),
+    true,
+    "événement distribution",
+  );
   assert.equal(u.getState().serveRec(id).ok, false, "déjà distribuée : refus");
 });
 
@@ -301,9 +373,15 @@ test("servePen : aucun service ni débit quand le stock est épuisé", () => {
   assert.equal(res.served, 0);
   assert.ok(res.skipped >= 1, "tous les candidats sont sautés faute de stock");
   assert.equal(u.getState().events.length, eventsBefore, "aucun événement de distribution");
-  assert.ok(u.getState().feed.every((f) => f.stockKg === 0), "stock intact");
   assert.ok(
-    u.getState().recs.filter((r) => penIds.has(r.animalId)).every((r) => !r.servedAt),
+    u.getState().feed.every((f) => f.stockKg === 0),
+    "stock intact",
+  );
+  assert.ok(
+    u
+      .getState()
+      .recs.filter((r) => penIds.has(r.animalId))
+      .every((r) => !r.servedAt),
     "aucune rec marquée servie",
   );
 });
@@ -314,7 +392,10 @@ test("resolveConflict('drop') supprime réellement l'événement", () => {
   u.getState().markConflict(ev.id);
   assert.equal(u.getState().events.find((e) => e.id === ev.id)?.syncStatus, "conflict");
   u.getState().resolveConflict(ev.id, "drop");
-  assert.equal(u.getState().events.some((e) => e.id === ev.id), false);
+  assert.equal(
+    u.getState().events.some((e) => e.id === ev.id),
+    false,
+  );
 });
 
 test("trimSynced borne le tableau et ne purge jamais du non synchronisé", () => {
@@ -330,9 +411,18 @@ test("trimSynced borne le tableau et ne purge jamais du non synchronisé", () =>
   const pending = [mk(20, "local"), mk(21, "pending")];
   const out = trimSynced([...pending, ...synced], 10);
   assert.equal(out.length, 10, "borné au max");
-  assert.ok(out.some((e) => e.id === "ev-20"), "local conservé");
-  assert.ok(out.some((e) => e.id === "ev-21"), "pending conservé");
-  assert.ok(out.some((e) => e.id === "ev-11"), "les plus récents synced restent");
+  assert.ok(
+    out.some((e) => e.id === "ev-20"),
+    "local conservé",
+  );
+  assert.ok(
+    out.some((e) => e.id === "ev-21"),
+    "pending conservé",
+  );
+  assert.ok(
+    out.some((e) => e.id === "ev-11"),
+    "les plus récents synced restent",
+  );
   assert.ok(!out.some((e) => e.id === "ev-0"), "le plus ancien synced est évincé");
 });
 
@@ -381,9 +471,9 @@ test("captureAnimal : poids et NEC invalides sont ignorés (pas de pollution)", 
   const target = u.getState().animals[0]!;
   const before = u.getState().weights.filter((w) => w.animalId === target.id).length;
   const out = u.getState().captureAnimal(target.id, {
-      weightKg: Number.POSITIVE_INFINITY,
-      bcs: 99,
-    });
+    weightKg: Number.POSITIVE_INFINITY,
+    bcs: 99,
+  });
   assert.equal(out?.weightKg, target.weightKg, "poids infini refusé");
   assert.equal(out?.bcs, target.bcs, "NEC hors plage refusé");
   assert.equal(
@@ -418,10 +508,7 @@ test("registerAnimal : rejette poids invalide et date de naissance future", () =
     () => u.getState().registerAnimal({ ...base, weightKg: Number.POSITIVE_INFINITY }),
     /Poids vif invalide/,
   );
-  assert.throws(
-    () => u.getState().registerAnimal({ ...base, bcs: 8 }),
-    /Note d'état corporel/,
-  );
+  assert.throws(() => u.getState().registerAnimal({ ...base, bcs: 8 }), /Note d'état corporel/);
   const future = new Date(Date.now() + 60 * 60 * 24 * 1000).toISOString().slice(0, 10);
   assert.throws(
     () => u.getState().registerAnimal({ ...base, weightKg: 40, birthDate: future }),
@@ -459,18 +546,72 @@ test("syncAll : appel concurrent → la file n'est traitée qu'une seule fois", 
   const u = store.useFarmStore;
   u.setState({ network: "online" });
   const slices = ["events", "healthEvents", "recs", "weights"] as const;
-  const pendingBefore = slices.reduce((n, k) => {
+  const syncableBefore = slices.reduce((n, k) => {
     const list = u.getState()[k] as readonly { syncStatus: SyncStatus }[];
-    return (
-      n +
-      list.filter(
-        (x) => x.syncStatus === "local" || x.syncStatus === "pending" || x.syncStatus === "failed",
-      ).length
-    );
+    return n + list.filter((x) => x.syncStatus === "local" || x.syncStatus === "pending").length;
   }, 0);
   const [a, b] = await Promise.all([u.getState().syncAll(), u.getState().syncAll()]);
-  assert.equal(a.synced + b.synced, pendingBefore, "un seul traitement de la file pendant l'appel concurrent");
+  assert.equal(
+    a.synced + b.synced,
+    syncableBefore,
+    "un seul traitement de la file pendant l'appel concurrent",
+  );
   assert.equal(b.synced, 0, "l'appel concurrent repart sans doubler");
+});
+
+test("syncAll : ne pousse pas les conflits (résolution explicite requise)", async () => {
+  const u = store.useFarmStore;
+  u.setState({ network: "online" });
+  const candidate = u
+    .getState()
+    .events.find((e) => e.syncStatus === "pending" || e.syncStatus === "local")!;
+  u.getState().markConflict(candidate.id);
+  const res = await u.getState().syncAll();
+  assert.equal(res.conflicts, 1, "le conflit restant est signalé");
+  assert.equal(
+    u.getState().events.find((e) => e.id === candidate.id)?.syncStatus,
+    "conflict",
+    "un conflit n'est pas écrasé en synced",
+  );
+
+  // La résolution explicite rend l'élément de nouveau synchronisable.
+  u.getState().resolveConflict(candidate.id, "local");
+  assert.equal(u.getState().events.find((e) => e.id === candidate.id)?.syncStatus, "pending");
+  const after = await u.getState().syncAll();
+  assert.equal(
+    u.getState().events.find((e) => e.id === candidate.id)?.syncStatus,
+    "synced",
+    "après résolution, l'élément est synchronisé",
+  );
+  assert.equal(after.conflicts, 0);
+});
+
+test("retryEvent remet un échec en pending (puis syncAll le pousse)", async () => {
+  const u = store.useFarmStore;
+  u.setState({ network: "online" });
+  const candidate = u
+    .getState()
+    .events.find((e) => e.syncStatus === "pending" || e.syncStatus === "local")!;
+  // Simule un échec de synchronisation côté transport.
+  u.setState({
+    events: u
+      .getState()
+      .events.map((e) =>
+        e.id === candidate.id ? { ...e, syncStatus: "failed" as SyncStatus } : e,
+      ),
+  });
+  const blocked = await u.getState().syncAll();
+  assert.equal(blocked.failed >= 1, true, "les échecs sont signalés");
+  assert.equal(
+    u.getState().events.find((e) => e.id === candidate.id)?.syncStatus,
+    "failed",
+    "un échec n'est pas écrasé en synced",
+  );
+
+  u.getState().retryEvent(candidate.id);
+  assert.equal(u.getState().events.find((e) => e.id === candidate.id)?.syncStatus, "pending");
+  await u.getState().syncAll();
+  assert.equal(u.getState().events.find((e) => e.id === candidate.id)?.syncStatus, "synced");
 });
 
 test("adjustFeedStock corrige le stock d'un lot, plafonne à zéro et journalise", () => {
@@ -480,19 +621,12 @@ test("adjustFeedStock corrige le stock d'un lot, plafonne à zéro et journalise
   const eventsBefore = u.getState().events.length;
 
   u.getState().adjustFeedStock(target.id, 50);
-  assert.equal(
-    u.getState().feed.find((f) => f.id === target.id)!.stockKg,
-    before + 50,
-  );
+  assert.equal(u.getState().feed.find((f) => f.id === target.id)!.stockKg, before + 50);
   assert.equal(u.getState().events.length, eventsBefore + 1);
   assert.ok(u.getState().events[0]!.label.includes(target.name));
 
   u.getState().adjustFeedStock(target.id, -5000);
-  assert.equal(
-    u.getState().feed.find((f) => f.id === target.id)!.stockKg,
-    0,
-    "clamp à 0",
-  );
+  assert.equal(u.getState().feed.find((f) => f.id === target.id)!.stockKg, 0, "clamp à 0");
 
   const len = u.getState().events.length;
   u.getState().adjustFeedStock(target.id, 0);

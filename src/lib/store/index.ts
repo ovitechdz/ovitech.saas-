@@ -54,6 +54,55 @@ export type FarmState = FarmData &
     resetDemo: () => void;
     setCurrentFarmId: (farmId: string) => void;
   };
+/** Valide et migre un état persisté d'une version antérieure.
+ *
+ *  `energy` est un objet (`EnergySnapshot`), pas un tableau : on le valide
+ *  comme objet porteur d'une `series` de type tableau.
+ *
+ *  La fusion se fait **champ par champ** : chaque champ valide de l'état
+ *  persisté est conservé, et un champ absent ou invalide retombe sur sa valeur
+ *  de seed. Contrairement à une politique « tout ou rien », un état partiel
+ *  (version antérieure précédant l'ajout d'un champ, ou donnée corrompue sur un
+ *  seul champ) ne fait donc plus perdre l'intégralité des données de
+ *  l'utilisateur : seuls les champs manquants/illisibles sont reconstruits. */
+export function migrateFarmData(persisted: unknown): FarmData {
+  const merged: FarmData = { ...seedState() };
+  if (persisted === null || typeof persisted !== "object") return merged;
+  const p = persisted as Partial<FarmData> & Record<string, unknown>;
+  const target = merged as unknown as Record<string, unknown>;
+
+  const arrayKeys = [
+    "animals",
+    "events",
+    "healthEvents",
+    "recs",
+    "feed",
+    "kpiSeries",
+    "weights",
+    "signoffs",
+  ] as const;
+  for (const key of arrayKeys) {
+    if (Array.isArray(p[key])) target[key] = p[key];
+  }
+
+  if (
+    p.energy !== null &&
+    typeof p.energy === "object" &&
+    Array.isArray((p.energy as EnergySnapshot).series)
+  ) {
+    merged.energy = p.energy as EnergySnapshot;
+  }
+  if (typeof p.role === "string") merged.role = p.role;
+  if (p.network === "online" || p.network === "offline") merged.network = p.network;
+  if (typeof p.currentFarmId === "string") merged.currentFarmId = p.currentFarmId;
+  if (p.lastSyncedAt === null || typeof p.lastSyncedAt === "string") {
+    merged.lastSyncedAt = p.lastSyncedAt;
+  }
+  if (typeof p.failNextSync === "boolean") merged.failNextSync = p.failNextSync;
+
+  return merged;
+}
+
 export const useFarmStore = create<FarmState>()(
   persist(
     (set, get, api) => ({
@@ -73,29 +122,7 @@ export const useFarmStore = create<FarmState>()(
       storage: createJSONStorage(() => indexedDbStorage()),
       skipHydration: true,
       version: 3,
-      migrate: (persisted, _version) => {
-        const p = persisted as Partial<FarmData> | undefined;
-        const arrays: Array<keyof FarmData> = [
-          "animals",
-          "events",
-          "healthEvents",
-          "recs",
-          "feed",
-          "energy",
-          "kpiSeries",
-          "weights",
-          "signoffs",
-        ];
-        const complete =
-          p !== null &&
-          typeof p === "object" &&
-          arrays.every((k) => Array.isArray(p[k]));
-        if (!complete) return seedState();
-        return {
-          ...seedState(),
-          ...(persisted as FarmData),
-        };
-      },
+      migrate: (persisted, _version) => migrateFarmData(persisted),
       partialize: (s) => ({
         role: s.role,
         network: s.network,
@@ -120,15 +147,9 @@ export function resetStoreForSsr() {
   useFarmStore.setState(seedState());
 }
 
-export function pendingCount(
-  s: Pick<FarmState, "events" | "healthEvents" | "recs" | "weights">,
-) {
+export function pendingCount(s: Pick<FarmState, "events" | "healthEvents" | "recs" | "weights">) {
   const open = (st: SyncStatus) =>
-    st === "local" ||
-    st === "pending" ||
-    st === "failed" ||
-    st === "conflict" ||
-    st === "syncing";
+    st === "local" || st === "pending" || st === "failed" || st === "conflict" || st === "syncing";
   return (
     s.events.filter((e) => open(e.syncStatus)).length +
     s.healthEvents.filter((h) => open(h.syncStatus)).length +
@@ -140,4 +161,3 @@ export function pendingCount(
 export { adgFromHistory, nextAnimalCode } from "./animals.ts";
 export type { ScanOutcome } from "./animals.ts";
 export { trimSynced } from "./trim.ts";
-

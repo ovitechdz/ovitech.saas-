@@ -1,6 +1,7 @@
 import type { Content, TDocumentDefinitions } from "pdfmake/interfaces";
 import { CONTACT } from "./contact";
 import { downloadPdfBuffer, loadPdfMake, renderPdfBuffer } from "./pdf-engine";
+import { PROJECT_REFERENCES } from "./project-references";
 import { ENGINE_VERSION } from "./types";
 
 export interface DossierInput {
@@ -54,25 +55,33 @@ export async function generateDossier(input: DossierInput): Promise<void> {
     }),
     content: [
       text("OVITECH", "h1"),
-      text(`OVT-PD-02 · v0.9 · ${ENGINE_VERSION} · ${date}`, "kicker"),
-      text(t("investisseurs.lead"), "lead"),
+      text(`${t("project.kicker")} · OVT-PD-02 · v0.9 · ${ENGINE_VERSION} · ${date}`, "kicker"),
+      text(t("project.lead"), "lead"),
       text(t("investisseurs.contactLine"), "contactRow"),
       text(`${t("investisseurs.email")} : ${CONTACT.email}`, "contactRow"),
       text(`${t("investisseurs.phone")} : ${CONTACT.phoneDisplay} (WhatsApp : +${CONTACT.whatsapp})`, "contactRow"),
       { text: "", margin: [0, 0, 0, 8] },
-      text(t("investisseurs.pillarsTitle"), "h2"),
-      ...["p1role", "p2role", "p3role", "p4role"].map((k, i) => [
-        text(
-          [
-            "Hybrid Feed Production",
-            "Data-Driven Nutrition Engine",
-            "Smart Energy Management",
-            "Connected Livestock Intelligence",
-          ][i] ?? "",
-          "pillarName",
-        ),
-        text(t(`vision.pillars.${k}`), "pillarRole"),
+      text(t("project.activityTitle"), "h2"),
+      text(t("project.activityLead"), "body"),
+      text(t("project.modelTitle"), "h2"),
+      ...["modelP1", "modelP2", "modelP3", "modelP4", "modelP5", "modelP6"].map((k) =>
+        text(`•  ${t(`project.${k}`)}`, ar ? "arBody" : "body", { margin: [0, 0, 0, 3] }),
+      ),
+      text(t("project.layersTitle"), "h2"),
+      ...["l1", "l2", "l3", "l4", "l5", "l6", "l7"].map((n) => [
+        text(t(`project.${n}Title`), "pillarName"),
+        text(t(`project.${n}Body`), "pillarRole"),
       ]).flat(),
+      text(t("project.platformTitle"), "h2"),
+      ...["platformF1", "platformF2", "platformF3", "platformF4", "platformF5", "platformF6"].map((k) =>
+        text(`•  ${t(`project.${k}`)}`, ar ? "arBody" : "body", { margin: [0, 0, 0, 3] }),
+      ),
+      text(t("project.platformNote"), "pillarRole"),
+      text(t("project.evidenceTitle"), "h2"),
+      text(`${t("project.evidenceShown")} — ${t("project.evidenceShownBody")}`, "body"),
+      text(`${t("project.evidenceToProve")} — ${t("project.evidenceToProveBody")}`, "body"),
+      text(t("project.evidenceNote"), "pillarRole"),
+      { text: "", margin: [0, 0, 0, 8] },
       text(t("investisseurs.proofTitle"), "h2"),
       ...["proofS1", "proofS2", "proofS3", "proofS4", "proofS5"].map((k) =>
         text(`•  ${t(`investisseurs.${k}`)}`, ar ? "arBody" : "body", { margin: [0, 0, 0, 3] }),
@@ -83,6 +92,17 @@ export async function generateDossier(input: DossierInput): Promise<void> {
         text(t(`vision.roadmap.${ph}title`), "pillarName"),
         text(t(`vision.roadmap.${ph}body`), "pillarRole"),
       ]).flat(),
+      text(`${t("project.investTitle")} — ${t("project.investBody")}`, "body"),
+      text(t("project.refsTitle"), "h2"),
+      text(t("project.refsFramework"), "body"),
+      ...PROJECT_REFERENCES.map((ref, index) =>
+        text(`${String(index + 1)}. ${ref.citation} [${ref.source}]`, "small", {
+          margin: [0, 0, 0, 3],
+          link: ref.url,
+          color: "#5A5A5A",
+        }),
+      ),
+      text(t("project.refsNote"), "small"),
       text(t("investisseurs.disclaimer"), "small"),
       text(t("investisseurs.labelFooter"), "small"),
     ],

@@ -21,7 +21,7 @@
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:auth": "node scripts/check-auth-invariant.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
-    "test": "node --test scripts/**/*.test.mjs && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/engine-cases.test.ts src/lib/format.test.ts src/lib/ration.test.ts src/lib/feed-stock.test.ts src/lib/indexed-db-storage.test.ts src/lib/health-check.test.ts src/lib/health.test.ts src/lib/store.test.ts src/lib/security-headers.test.ts src/lib/backup.test.ts",
+    "test": "node --test scripts/**/*.test.mjs && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/engine-cases.test.ts src/lib/format.test.ts src/lib/ration.test.ts src/lib/feed-stock.test.ts src/lib/indexed-db-storage.test.ts src/lib/health-check.test.ts src/lib/health.test.ts src/lib/store.test.ts src/lib/golden-path.test.ts src/lib/security-headers.test.ts src/lib/backup.test.ts src/lib/db-transaction.test.ts src/lib/auth/farm-membership.test.ts src/lib/sync-apply.test.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

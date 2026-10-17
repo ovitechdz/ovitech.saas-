@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import type { SyncStatus } from '../types.ts';
 import type { FarmState } from './index.ts';
 
 export interface SyncSlice {
@@ -10,7 +11,17 @@ export interface SyncSlice {
 
 export const createSyncSlice: StateCreator<FarmState, [], [], SyncSlice> = (set, get) => {
   let syncInFlight = false;
-  const openStatuses = ['local', 'pending', 'failed', 'conflict', 'syncing'] as const;
+  // Seuls `local`/`pending` sont poussés automatiquement. `failed` exige
+  // `retryEvent` et `conflict` exige `resolveConflict` : les écraser en
+  // `synced` perdrait la résolution explicite de l'utilisateur et viderait la
+  // file d'erreurs sans qu'aucune action ne l'ait décidé.
+  const syncable = ['local', 'pending'] as const;
+  const isSyncable = (st: SyncStatus) => (syncable as readonly SyncStatus[]).includes(st);
+  const countByStatus = (state: FarmState, status: SyncStatus) =>
+    state.events.filter((e) => e.syncStatus === status).length +
+    state.healthEvents.filter((h) => h.syncStatus === status).length +
+    state.recs.filter((r) => r.syncStatus === status).length +
+    state.weights.filter((w) => w.syncStatus === status).length;
   return {
     syncAll: async () => {
       if (syncInFlight) return { synced: 0, failed: 0, conflicts: 0 };
@@ -26,23 +37,23 @@ export const createSyncSlice: StateCreator<FarmState, [], [], SyncSlice> = (set,
       try {
         const state = get();
         const pending = [
-          ...state.events.filter((e) => openStatuses.includes(e.syncStatus as typeof openStatuses[number])),
-          ...state.healthEvents.filter((h) => openStatuses.includes(h.syncStatus as typeof openStatuses[number])),
-          ...state.recs.filter((r) => openStatuses.includes(r.syncStatus as typeof openStatuses[number])),
-          ...state.weights.filter((w) => openStatuses.includes(w.syncStatus as typeof openStatuses[number])),
+          ...state.events.filter((e) => isSyncable(e.syncStatus)),
+          ...state.healthEvents.filter((h) => isSyncable(h.syncStatus)),
+          ...state.recs.filter((r) => isSyncable(r.syncStatus)),
+          ...state.weights.filter((w) => isSyncable(w.syncStatus)),
         ];
+        const failed = countByStatus(state, 'failed');
+        const conflicts = countByStatus(state, 'conflict');
         if (pending.length === 0) {
-          return { synced: 0, failed: 0, conflicts: 0 };
+          return { synced: 0, failed, conflicts };
         }
         set((s) => ({
-          events: s.events.map((e) => (openStatuses.includes(e.syncStatus as typeof openStatuses[number]) ? { ...e, syncStatus: 'synced', error: undefined } : e)),
-          healthEvents: s.healthEvents.map((h) => (openStatuses.includes(h.syncStatus as typeof openStatuses[number]) ? { ...h, syncStatus: 'synced' } : h)),
-          recs: s.recs.map((r) => (openStatuses.includes(r.syncStatus as typeof openStatuses[number]) ? { ...r, syncStatus: 'synced' } as any : r)),
-          weights: s.weights.map((w) => (openStatuses.includes(w.syncStatus as typeof openStatuses[number]) ? { ...w, syncStatus: 'synced' } : w)),
+          events: s.events.map((e) => (isSyncable(e.syncStatus) ? { ...e, syncStatus: 'synced', error: undefined } : e)),
+          healthEvents: s.healthEvents.map((h) => (isSyncable(h.syncStatus) ? { ...h, syncStatus: 'synced' } : h)),
+          recs: s.recs.map((r) => (isSyncable(r.syncStatus) ? { ...r, syncStatus: 'synced' } as any : r)),
+          weights: s.weights.map((w) => (isSyncable(w.syncStatus) ? { ...w, syncStatus: 'synced' } : w)),
           lastSyncedAt: new Date().toISOString(),
         } as any));
-        const failed = pending.filter((it) => it.syncStatus === 'failed').length;
-        const conflicts = pending.filter((it) => it.syncStatus === 'conflict').length;
         return { synced: pending.length, failed, conflicts };
       } finally {
         syncInFlight = false;
